@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tareas | Track</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script defer th:src="@{/js/tasks.js}"></script>
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/app/tasks}">Track</a>
+    <a class="button primary" th:href="@{/app/tasks/new}">Nueva tarea</a>
+</header>
+
+<main class="container">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Panel</p>
+            <h1>Tareas</h1>
+        </div>
+        <input class="search-input" type="search" data-task-filter placeholder="Buscar">
+    </div>
+
+    <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+    <section class="task-list" th:if="${!tasks.isEmpty()}">
+        <article class="task-card" th:each="task : ${tasks}" th:attr="data-task-card=${task.name + ' ' + (task.description ?: '')}">
+            <div class="task-card-main">
+                <h2 th:text="${task.name}">Nombre de tarea</h2>
+                <p th:text="${task.description ?: 'Sin descripcion'}">Descripcion</p>
+                <div class="meta-row">
+                    <span th:text="${#temporals.format(task.startedAt, 'yyyy-MM-dd HH:mm')}">2026-07-04 12:00</span>
+                </div>
+            </div>
+            <div class="task-actions">
+                <a class="button secondary" th:href="@{/app/tasks/{id}(id=${task.id})}">Ver</a>
+                <a class="button secondary" th:href="@{/app/tasks/{id}/edit(id=${task.id})}">Editar</a>
+                <form th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button class="button danger" type="submit">Finalizar</button>
+                </form>
+            </div>
+        </article>
+        <a class="add-task-tile" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
+            <span aria-hidden="true">+</span>
+        </a>
+    </section>
+
+    <section class="empty-state" th:if="${tasks.isEmpty()}">
+        <h2>No hay tareas todavía</h2>
+        <a class="add-task-tile" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
+            <span aria-hidden="true">+</span>
+        </a>
+    </section>
+</main>
+</body>
+</html>

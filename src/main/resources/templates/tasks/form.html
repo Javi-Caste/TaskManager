@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle + ' | Track'}">Tarea | Track</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script defer th:src="@{/js/tasks.js}"></script>
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/app/tasks}">Track</a>
+    <a class="button secondary" th:href="@{/app/tasks}">Volver</a>
+</header>
+
+<main class="container narrow">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Tarea</p>
+            <h1 th:text="${pageTitle}">Crear tarea</h1>
+        </div>
+    </div>
+
+    <form class="task-form" th:action="@{${formAction}}" th:object="${taskForm}" method="post" data-task-form>
+        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <label>
+            <span>Nombre</span>
+            <input type="text" th:field="*{name}" maxlength="100" required autofocus>
+            <small class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></small>
+        </label>
+
+        <label>
+            <span>Descripcion</span>
+            <textarea th:field="*{description}" maxlength="500" rows="5"></textarea>
+            <small class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></small>
+        </label>
+
+        <div class="form-actions">
+            <button class="button primary" type="submit">Guardar</button>
+            <a class="button secondary" th:href="@{/app/tasks}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${task.name + ' | Track'}">Detalle | Track</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script defer th:src="@{/js/tasks.js}"></script>
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/app/tasks}">Track</a>
+    <a class="button secondary" th:href="@{/app/tasks}">Volver</a>
+</header>
+
+<main class="container narrow">
+    <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+    <article class="detail-panel">
+        <p class="eyebrow">Detalle</p>
+        <h1 th:text="${task.name}">Nombre</h1>
+        <p class="description" th:text="${task.description ?: 'Sin descripcion'}">Descripcion</p>
+
+        <dl class="details">
+            <div>
+                <dt>Responsable</dt>
+                <dd th:text="${task.owner}">guest</dd>
+            </div>
+            <div>
+                <dt>Inicio</dt>
+                <dd th:text="${#temporals.format(task.startedAt, 'yyyy-MM-dd HH:mm')}">2026-07-04 12:00</dd>
+            </div>
+            <div>
+                <dt>Fin</dt>
+                <dd th:text="${task.finishedAt == null ? 'Activa' : #temporals.format(task.finishedAt, 'yyyy-MM-dd HH:mm')}">Activa</dd>
+            </div>
+        </dl>
+
+        <div class="form-actions">
+            <a class="button primary" th:if="${task.finishedAt == null}" th:href="@{/app/tasks/{id}/edit(id=${task.id})}">Editar</a>
+            <form th:if="${task.finishedAt == null}" th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
+                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button danger" type="submit">Finalizar</button>
+            </form>
+            <a class="button secondary" th:href="@{/app/tasks}">Volver</a>
+        </div>
+    </article>
+</main>
+</body>
+</html>

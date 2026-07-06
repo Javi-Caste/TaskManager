@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No encontrada | Track</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/app/tasks}">Track</a>
+</header>
+
+<main class="container narrow">
+    <section class="empty-state">
+        <h1>Tarea no encontrada</h1>
+        <p th:text="${errorMessage}">No se encontro la tarea.</p>
+        <a class="button primary" th:href="@{/app/tasks}">Volver</a>
+    </section>
+</main>
+</body>
+</html>
