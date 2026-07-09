@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.javigamer.user.CurrentUserResolver;
 
 
 @RestController
@@ -23,37 +24,37 @@ import org.springframework.security.core.Authentication;
 public class TaskController {
 
     private final TaskService taskService;
-    private final TaskOwnerResolver ownerResolver;
+    private final CurrentUserResolver currentUserResolver;
 
-    public TaskController(TaskService taskService, TaskOwnerResolver ownerResolver) {
+    public TaskController(TaskService taskService, CurrentUserResolver currentUserResolver) {
         this.taskService = taskService;
-        this.ownerResolver = ownerResolver;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @GetMapping("/{id}")
     public Task getTask(@PathVariable Long id, Authentication authentication) {
-        return taskService.getTask(id, ownerResolver.resolve(authentication));
+        return taskService.getTask(id, currentUserResolver.resolve(authentication));
     }
     
     @GetMapping
     public List<Task> getAllTasks(Authentication authentication) {
-        return taskService.getAllTasks(ownerResolver.resolve(authentication));
+        return taskService.getAllTasks(currentUserResolver.resolve(authentication));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTask(@Valid @RequestBody TaskForm form, Authentication authentication) {
-        return taskService.createTask(ownerResolver.resolve(authentication), form);
+        return taskService.createTask(currentUserResolver.resolve(authentication), form);
     }
 
     @PutMapping("/{id}")
     public Task updateTask(@PathVariable Long id, @Valid @RequestBody TaskForm form, Authentication authentication) {
-        return taskService.updateTask(id, ownerResolver.resolve(authentication), form);
+        return taskService.updateTask(id, currentUserResolver.resolve(authentication), form);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id, Authentication authentication) {
-        taskService.deleteTask(id, ownerResolver.resolve(authentication));
+        taskService.deleteTask(id, currentUserResolver.resolve(authentication));
         return ResponseEntity.noContent().build();
     }
 

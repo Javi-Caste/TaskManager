@@ -20,9 +20,13 @@ import java.util.List;
 import org.javigamer.task.Task;
 import org.javigamer.task.TaskForm;
 import org.javigamer.task.TaskNotFoundException;
-import org.javigamer.task.TaskOwnerResolver;
 import org.javigamer.task.TaskPageController;
 import org.javigamer.task.TaskService;
+import org.javigamer.user.CurrentUser;
+import org.javigamer.user.CurrentUserResolver;
+import org.javigamer.user.Role;
+import org.javigamer.user.UserAccountService;
+import org.javigamer.user.UserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +42,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class TaskPageControllerTest {
 
     private static final String OWNER = "Javi";
+    private static final CurrentUser JAVI = new CurrentUser(OWNER, Role.USER);
+    private static final CurrentUser ADMIN = new CurrentUser("admin", Role.ADMIN);
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,11 +52,14 @@ class TaskPageControllerTest {
     private TaskService taskService;
 
     @MockitoBean
-    private TaskOwnerResolver ownerResolver;
+    private CurrentUserResolver currentUserResolver;
+
+    @MockitoBean
+    private UserAccountService userAccountService;
 
     @BeforeEach
     void setUpOwner() {
-        when(ownerResolver.resolve(any(Authentication.class))).thenReturn(OWNER);
+        when(currentUserResolver.resolve(any(Authentication.class))).thenReturn(JAVI);
     }
 
     @Test
@@ -62,7 +71,7 @@ class TaskPageControllerTest {
 
     @Test
     void listTasksRendersTaskList() throws Exception {
-        when(taskService.getAllTasks(OWNER)).thenReturn(List.of(task(1L, OWNER, "Build UI")));
+        when(taskService.getAllTasks(JAVI)).thenReturn(List.of(task(1L, OWNER, "Build UI")));
 
         mockMvc.perform(get("/app/tasks").principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -76,7 +85,7 @@ class TaskPageControllerTest {
 
     @Test
     void listTasksRendersAddTileWhenListIsEmpty() throws Exception {
-        when(taskService.getAllTasks(OWNER)).thenReturn(List.of());
+        when(taskService.getAllTasks(JAVI)).thenReturn(List.of());
 
         mockMvc.perform(get("/app/tasks").principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -88,7 +97,7 @@ class TaskPageControllerTest {
 
     @Test
     void newTaskRendersEmptyForm() throws Exception {
-        mockMvc.perform(get("/app/tasks/new"))
+        mockMvc.perform(get("/app/tasks/new").principal(authenticatedOwner()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("tasks/form"))
                 .andExpect(model().attributeExists("taskForm"))
@@ -97,7 +106,7 @@ class TaskPageControllerTest {
 
     @Test
     void createTaskRedirectsToDetailWhenValid() throws Exception {
-        when(taskService.createTask(eq(OWNER), any(TaskForm.class))).thenReturn(task(5L, OWNER, "New task"));
+        when(taskService.createTask(eq(JAVI), any(TaskForm.class))).thenReturn(task(5L, OWNER, "New task"));
 
         mockMvc.perform(post("/app/tasks")
                         .principal(authenticatedOwner())
@@ -106,7 +115,7 @@ class TaskPageControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/tasks/5"));
 
-        verify(taskService).createTask(eq(OWNER), any(TaskForm.class));
+        verify(taskService).createTask(eq(JAVI), any(TaskForm.class));
     }
 
     @Test
@@ -121,7 +130,7 @@ class TaskPageControllerTest {
 
     @Test
     void taskDetailsRendersTask() throws Exception {
-        when(taskService.getTask(3L, OWNER)).thenReturn(task(3L, OWNER, "Read details"));
+        when(taskService.getTask(3L, JAVI)).thenReturn(task(3L, OWNER, "Read details"));
 
         mockMvc.perform(get("/app/tasks/{id}", 3L).principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -133,7 +142,7 @@ class TaskPageControllerTest {
 
     @Test
     void editTaskRendersExistingTaskForm() throws Exception {
-        when(taskService.getTask(3L, OWNER)).thenReturn(task(3L, OWNER, "Edit details"));
+        when(taskService.getTask(3L, JAVI)).thenReturn(task(3L, OWNER, "Edit details"));
 
         mockMvc.perform(get("/app/tasks/{id}/edit", 3L).principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -144,7 +153,7 @@ class TaskPageControllerTest {
 
     @Test
     void updateTaskRedirectsToDetailWhenValid() throws Exception {
-        when(taskService.updateTask(eq(3L), eq(OWNER), any(TaskForm.class))).thenReturn(task(3L, OWNER, "Updated"));
+        when(taskService.updateTask(eq(3L), eq(JAVI), any(TaskForm.class))).thenReturn(task(3L, OWNER, "Updated"));
 
         mockMvc.perform(post("/app/tasks/{id}", 3L)
                         .principal(authenticatedOwner())
@@ -153,12 +162,12 @@ class TaskPageControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/tasks/3"));
 
-        verify(taskService).updateTask(eq(3L), eq(OWNER), any(TaskForm.class));
+        verify(taskService).updateTask(eq(3L), eq(JAVI), any(TaskForm.class));
     }
 
     @Test
     void updateTaskRendersFormWhenInvalid() throws Exception {
-        when(taskService.getTask(3L, OWNER)).thenReturn(task(3L, OWNER, "Existing"));
+        when(taskService.getTask(3L, JAVI)).thenReturn(task(3L, OWNER, "Existing"));
 
         mockMvc.perform(post("/app/tasks/{id}", 3L)
                         .principal(authenticatedOwner())
@@ -174,12 +183,12 @@ class TaskPageControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/tasks"));
 
-        verify(taskService).deleteTask(3L, OWNER);
+        verify(taskService).deleteTask(3L, JAVI);
     }
 
     @Test
     void missingTaskRendersNotFoundView() throws Exception {
-        when(taskService.getTask(88L, OWNER)).thenThrow(new TaskNotFoundException(88L));
+        when(taskService.getTask(88L, JAVI)).thenThrow(new TaskNotFoundException(88L));
 
         mockMvc.perform(get("/app/tasks/{id}", 88L).principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -197,6 +206,25 @@ class TaskPageControllerTest {
         verifyNoInteractions(taskService);
     }
 
+    @Test
+    void adminListShowsSearchToolsAndHidesCreateActions() throws Exception {
+        when(currentUserResolver.resolve(any(Authentication.class))).thenReturn(ADMIN);
+        when(taskService.getAllTasks(ADMIN)).thenReturn(List.of(task(1L, "Alex", "Review task")));
+        when(userAccountService.searchUsers(ADMIN, "ja")).thenReturn(List.of(new UserSummary(2L, "javi", Role.USER)));
+
+        mockMvc.perform(get("/app/tasks")
+                        .principal(admin())
+                        .param("userQuery", "ja"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("tasks/list"))
+                .andExpect(content().string(containsString("Buscar usuarios")))
+                .andExpect(content().string(containsString("Buscar tarea por ID")))
+                .andExpect(content().string(containsString("javi")))
+                .andExpect(content().string(containsString("Responsable: Alex")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("href=\"/app/tasks/new\""))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("class=\"add-task-tile\""))));
+    }
+
     private Task task(Long id, String owner, String name) {
         return new Task(
                 id,
@@ -209,5 +237,9 @@ class TaskPageControllerTest {
 
     private TestingAuthenticationToken authenticatedOwner() {
         return new TestingAuthenticationToken(OWNER, "password");
+    }
+
+    private TestingAuthenticationToken admin() {
+        return new TestingAuthenticationToken("admin", "password");
     }
 }

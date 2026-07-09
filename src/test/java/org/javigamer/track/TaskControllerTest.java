@@ -19,8 +19,10 @@ import org.javigamer.task.Task;
 import org.javigamer.task.TaskController;
 import org.javigamer.task.TaskForm;
 import org.javigamer.task.TaskNotFoundException;
-import org.javigamer.task.TaskOwnerResolver;
 import org.javigamer.task.TaskService;
+import org.javigamer.user.CurrentUser;
+import org.javigamer.user.CurrentUserResolver;
+import org.javigamer.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TaskControllerTest {
 
     private static final String OWNER = "Javi";
+    private static final CurrentUser JAVI = new CurrentUser(OWNER, Role.USER);
 
     @Autowired
     private MockMvc mockMvc;
@@ -48,17 +51,17 @@ class TaskControllerTest {
     private TaskService taskService;
 
     @MockitoBean
-    private TaskOwnerResolver ownerResolver;
+    private CurrentUserResolver currentUserResolver;
 
     @BeforeEach
     void setUpOwner() {
-        when(ownerResolver.resolve(any(Authentication.class))).thenReturn(OWNER);
+        when(currentUserResolver.resolve(any(Authentication.class))).thenReturn(JAVI);
     }
 
     @Test
     void getTaskReturnsTaskById() throws Exception {
         Task task = task(1L, OWNER, "Build tests");
-        when(taskService.getTask(1L, OWNER)).thenReturn(task);
+        when(taskService.getTask(1L, JAVI)).thenReturn(task);
 
         mockMvc.perform(get("/tasks/{id}", 1L).principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -68,12 +71,12 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.description").value("Description"))
                 .andExpect(jsonPath("$.startedAt").value("2026-07-04T12:00:00"));
 
-        verify(taskService).getTask(1L, OWNER);
+        verify(taskService).getTask(1L, JAVI);
     }
 
     @Test
     void getTaskReturnsNotFoundForMissingTask() throws Exception {
-        when(taskService.getTask(99L, OWNER)).thenThrow(new TaskNotFoundException(99L));
+        when(taskService.getTask(99L, JAVI)).thenThrow(new TaskNotFoundException(99L));
 
         mockMvc.perform(get("/tasks/{id}", 99L).principal(authenticatedOwner()))
                 .andExpect(status().isNotFound())
@@ -84,7 +87,7 @@ class TaskControllerTest {
     void getAllTasksReturnsTasks() throws Exception {
         Task firstTask = task(1L, OWNER, "Build tests");
         Task secondTask = task(2L, OWNER, "Review tests");
-        when(taskService.getAllTasks(OWNER)).thenReturn(List.of(firstTask, secondTask));
+        when(taskService.getAllTasks(JAVI)).thenReturn(List.of(firstTask, secondTask));
 
         mockMvc.perform(get("/tasks").principal(authenticatedOwner()))
                 .andExpect(status().isOk())
@@ -94,13 +97,13 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$[1].id").value(2))
                 .andExpect(jsonPath("$[1].name").value("Review tests"));
 
-        verify(taskService).getAllTasks(OWNER);
+        verify(taskService).getAllTasks(JAVI);
     }
 
     @Test
     void createTaskReturnsCreatedTask() throws Exception {
         Task savedTask = task(1L, OWNER, "Create task");
-        when(taskService.createTask(eq(OWNER), any(TaskForm.class))).thenReturn(savedTask);
+        when(taskService.createTask(eq(JAVI), any(TaskForm.class))).thenReturn(savedTask);
 
         mockMvc.perform(post("/tasks")
                         .principal(authenticatedOwner())
@@ -113,7 +116,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.startedAt").value("2026-07-04T12:00:00"));
 
         ArgumentCaptor<TaskForm> formCaptor = ArgumentCaptor.forClass(TaskForm.class);
-        verify(taskService).createTask(eq(OWNER), formCaptor.capture());
+        verify(taskService).createTask(eq(JAVI), formCaptor.capture());
         assertThat(formCaptor.getValue().getName()).isEqualTo("Create task");
         assertThat(formCaptor.getValue().getDescription()).isEqualTo("Persist a new task");
     }
@@ -121,7 +124,7 @@ class TaskControllerTest {
     @Test
     void createTaskDoesNotRequireDateFieldsInRequest() throws Exception {
         Task savedTask = task(1L, OWNER, "Create task");
-        when(taskService.createTask(eq(OWNER), any(TaskForm.class))).thenReturn(savedTask);
+        when(taskService.createTask(eq(JAVI), any(TaskForm.class))).thenReturn(savedTask);
 
         mockMvc.perform(post("/tasks")
                         .principal(authenticatedOwner())
@@ -133,7 +136,7 @@ class TaskControllerTest {
     @Test
     void updateTaskReturnsUpdatedTask() throws Exception {
         Task updatedTask = task(1L, OWNER, "Update task");
-        when(taskService.updateTask(eq(1L), eq(OWNER), any(TaskForm.class))).thenReturn(updatedTask);
+        when(taskService.updateTask(eq(1L), eq(JAVI), any(TaskForm.class))).thenReturn(updatedTask);
 
         mockMvc.perform(put("/tasks/{id}", 1L)
                         .principal(authenticatedOwner())
@@ -144,7 +147,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.owner").value("Javi"))
                 .andExpect(jsonPath("$.name").value("Update task"));
 
-        verify(taskService).updateTask(eq(1L), eq(OWNER), any(TaskForm.class));
+        verify(taskService).updateTask(eq(1L), eq(JAVI), any(TaskForm.class));
     }
 
     @Test
@@ -152,7 +155,7 @@ class TaskControllerTest {
         mockMvc.perform(delete("/tasks/{id}", 1L).principal(authenticatedOwner()))
                 .andExpect(status().isNoContent());
 
-        verify(taskService).deleteTask(1L, OWNER);
+        verify(taskService).deleteTask(1L, JAVI);
     }
 
     private Task task(Long id, String owner, String name) {

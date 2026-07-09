@@ -38,7 +38,7 @@
 
         <div class="form-actions">
             <a class="button primary" th:if="${task.finishedAt == null}" th:href="@{/app/tasks/{id}/edit(id=${task.id})}">Editar</a>
-            <form th:if="${task.finishedAt == null}" th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
+            <form th:if="${task.finishedAt == null && !isAdmin}" th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
                 <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <button class="button danger" type="submit">Finalizar</button>
             </form>

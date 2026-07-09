@@ -10,19 +10,57 @@
 <body>
 <header class="topbar">
     <a class="brand" th:href="@{/app/tasks}">Track</a>
-    <a class="button primary" th:href="@{/app/tasks/new}">Nueva tarea</a>
+    <a class="button primary" th:if="${canCreateTasks}" th:href="@{/app/tasks/new}">Nueva tarea</a>
 </header>
 
 <main class="container">
     <div class="page-heading">
         <div>
             <p class="eyebrow">Panel</p>
-            <h1>Tareas</h1>
+            <h1 th:text="${isAdmin ? 'Tareas de todos' : 'Tareas'}">Tareas</h1>
         </div>
         <input class="search-input" type="search" data-task-filter placeholder="Buscar">
     </div>
 
     <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+    <section class="admin-tools" th:if="${isAdmin}">
+        <form class="admin-search-form" th:action="@{/app/tasks}" method="get">
+            <label>
+                <span>Buscar usuarios</span>
+                <input type="search" name="userQuery" th:value="${userSearchQuery}" placeholder="Usuario">
+            </label>
+            <button class="button secondary" type="submit">Buscar</button>
+        </form>
+
+        <div class="search-results" th:if="${userResults != null && !userResults.isEmpty()}">
+            <p class="eyebrow">Usuarios</p>
+            <ul>
+                <li th:each="user : ${userResults}">
+                    <span th:text="${user.username()}">javi</span>
+                    <strong th:text="${user.role()}">USER</strong>
+                </li>
+            </ul>
+        </div>
+
+        <form class="admin-search-form" th:action="@{/app/tasks}" method="get">
+            <label>
+                <span>Buscar tarea por ID</span>
+                <input type="number" min="1" name="taskId" th:value="${taskSearchId}" placeholder="ID">
+            </label>
+            <button class="button secondary" type="submit">Buscar</button>
+        </form>
+
+        <div class="search-results" th:if="${taskSearchResult != null}">
+            <p class="eyebrow">Tarea encontrada</p>
+            <a class="search-result-link" th:href="@{/app/tasks/{id}(id=${taskSearchResult.id})}">
+                <span th:text="${taskSearchResult.name}">Nombre</span>
+                <strong th:text="${taskSearchResult.owner}">owner</strong>
+            </a>
+        </div>
+
+        <p class="field-error" th:if="${taskSearchError}" th:text="${taskSearchError}"></p>
+    </section>
 
     <section class="task-list" th:if="${!tasks.isEmpty()}">
         <article class="task-card" th:each="task : ${tasks}" th:attr="data-task-card=${task.name + ' ' + (task.description ?: '')}">
@@ -30,26 +68,27 @@
                 <h2 th:text="${task.name}">Nombre de tarea</h2>
                 <p th:text="${task.description ?: 'Sin descripcion'}">Descripcion</p>
                 <div class="meta-row">
+                    <span th:if="${isAdmin}" th:text="${'Responsable: ' + task.owner}">Responsable: javi</span>
                     <span th:text="${#temporals.format(task.startedAt, 'yyyy-MM-dd HH:mm')}">2026-07-04 12:00</span>
                 </div>
             </div>
             <div class="task-actions">
                 <a class="button secondary" th:href="@{/app/tasks/{id}(id=${task.id})}">Ver</a>
                 <a class="button secondary" th:href="@{/app/tasks/{id}/edit(id=${task.id})}">Editar</a>
-                <form th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
+                <form th:if="${!isAdmin}" th:action="@{/app/tasks/{id}/delete(id=${task.id})}" method="post" data-confirm-delete>
                     <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <button class="button danger" type="submit">Finalizar</button>
                 </form>
             </div>
         </article>
-        <a class="add-task-tile" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
+        <a class="add-task-tile" th:if="${canCreateTasks}" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
             <span aria-hidden="true">+</span>
         </a>
     </section>
 
     <section class="empty-state" th:if="${tasks.isEmpty()}">
         <h2>No hay tareas todavía</h2>
-        <a class="add-task-tile" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
+        <a class="add-task-tile" th:if="${canCreateTasks}" th:href="@{/app/tasks/new}" aria-label="Nueva tarea">
             <span aria-hidden="true">+</span>
         </a>
     </section>

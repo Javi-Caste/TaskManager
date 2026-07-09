@@ -9,5 +9,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     Optional<Task> findByIdAndOwnerAndFinishedAtIsNull(Long id, String owner);
 
+    Optional<Task> findByIdAndFinishedAtIsNull(Long id);
+
+    List<Task> findAllByFinishedAtIsNullOrderByStartedAtAscIdAsc();
+
     List<Task> findAllByOwnerAndFinishedAtIsNullOrderByStartedAtAscIdAsc(String owner);
 }
