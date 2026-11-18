@@ -1,17 +1,13 @@
 package org.javigamer.task;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
-    Optional<Task> findByIdAndOwner(Long id, String owner);
-
-    Optional<Task> findByIdAndOwnerAndFinishedAtIsNull(Long id, String owner);
-
     Optional<Task> findByIdAndFinishedAtIsNull(Long id);
 
     List<Task> findAllByFinishedAtIsNullOrderByStartedAtAscIdAsc();
 
-    List<Task> findAllByOwnerAndFinishedAtIsNullOrderByStartedAtAscIdAsc(String owner);
+    List<Task> findAllByOwner_IdAndFinishedAtIsNullOrderByStartedAtAscIdAsc(Long ownerId);
 }

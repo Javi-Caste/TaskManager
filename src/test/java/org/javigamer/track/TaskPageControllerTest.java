@@ -26,6 +26,7 @@ import org.javigamer.user.CurrentUser;
 import org.javigamer.user.CurrentUserResolver;
 import org.javigamer.user.Role;
 import org.javigamer.user.UserAccountService;
+import org.javigamer.user.UserAccount;
 import org.javigamer.user.UserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -228,11 +229,15 @@ class TaskPageControllerTest {
     private Task task(Long id, String owner, String name) {
         return new Task(
                 id,
-                owner,
+                user(owner),
                 name,
                 "Description",
                 LocalDateTime.of(2026, 7, 4, 12, 0),
                 null);
+    }
+
+    private UserAccount user(String username) {
+        return new UserAccount(username, username + "@example.test", "encoded", Role.USER);
     }
 
     private TestingAuthenticationToken authenticatedOwner() {

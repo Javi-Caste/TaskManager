@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 
 import org.javigamer.task.Task;
 import org.javigamer.task.TaskRepository;
+import org.javigamer.user.Role;
+import org.javigamer.user.UserAccount;
+import org.javigamer.user.UserAccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -18,42 +21,54 @@ class TaskRepositoryTest {
     @Autowired
     private TaskRepository taskRepository;
 
-    @Test
-    void findByIdAndOwnerReturnsOnlyMatchingOwner() {
-        Task javiTask = taskRepository.save(task("Javi", "Javi task", LocalDateTime.of(2026, 7, 4, 12, 0)));
-        Task alexTask = taskRepository.save(task("Alex", "Alex task", LocalDateTime.of(2026, 7, 4, 12, 0)));
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
-        assertThat(taskRepository.findByIdAndOwner(javiTask.getId(), "Javi")).contains(javiTask);
-        assertThat(taskRepository.findByIdAndOwner(javiTask.getId(), "Alex")).isEmpty();
-        assertThat(taskRepository.findByIdAndOwner(alexTask.getId(), "Javi")).isEmpty();
+    @Test
+    void tasksReferenceTheirPersistedOwner() {
+        UserAccount javi = user("javi");
+        UserAccount alex = user("alex");
+        Task javiTask = taskRepository.save(task(javi, "Javi task", LocalDateTime.of(2026, 7, 4, 12, 0)));
+        Task alexTask = taskRepository.save(task(alex, "Alex task", LocalDateTime.of(2026, 7, 4, 12, 0)));
+
+        assertThat(javiTask.getOwner().getId()).isEqualTo(javi.getId());
+        assertThat(javiTask.getOwner().getUsername()).isEqualTo("javi");
+        assertThat(alexTask.getOwner().getId()).isEqualTo(alex.getId());
     }
 
     @Test
     void findAllByOwnerReturnsOnlyActiveTasksOrderedByStartedAtThenId() {
-        Task later = taskRepository.save(task("Javi", "Later", LocalDateTime.of(2026, 7, 8, 12, 0)));
-        Task earlier = taskRepository.save(task("Javi", "Earlier", LocalDateTime.of(2026, 7, 4, 12, 0)));
-        Task otherOwner = taskRepository.save(task("Alex", "Other", LocalDateTime.of(2026, 7, 1, 12, 0)));
-        Task finished = task("Javi", "Finished", LocalDateTime.of(2026, 7, 2, 12, 0));
+        UserAccount javi = user("javi");
+        UserAccount alex = user("alex");
+        Task later = taskRepository.save(task(javi, "Later", LocalDateTime.of(2026, 7, 8, 12, 0)));
+        Task earlier = taskRepository.save(task(javi, "Earlier", LocalDateTime.of(2026, 7, 4, 12, 0)));
+        Task otherOwner = taskRepository.save(task(alex, "Other", LocalDateTime.of(2026, 7, 1, 12, 0)));
+        Task finished = task(javi, "Finished", LocalDateTime.of(2026, 7, 2, 12, 0));
         finished.setFinishedAt(LocalDateTime.of(2026, 7, 3, 12, 0));
         taskRepository.save(finished);
 
-        assertThat(taskRepository.findAllByOwnerAndFinishedAtIsNullOrderByStartedAtAscIdAsc("Javi"))
+        assertThat(taskRepository.findAllByOwner_IdAndFinishedAtIsNullOrderByStartedAtAscIdAsc(javi.getId()))
                 .containsExactly(earlier, later)
                 .doesNotContain(otherOwner, finished);
     }
 
     @Test
-    void findActiveByIdAndOwnerIgnoresFinishedTasks() {
-        Task active = taskRepository.save(task("Javi", "Active", LocalDateTime.of(2026, 7, 4, 12, 0)));
-        Task finished = task("Javi", "Finished", LocalDateTime.of(2026, 7, 4, 13, 0));
+    void findActiveByIdIgnoresFinishedTasks() {
+        UserAccount javi = user("javi");
+        Task active = taskRepository.save(task(javi, "Active", LocalDateTime.of(2026, 7, 4, 12, 0)));
+        Task finished = task(javi, "Finished", LocalDateTime.of(2026, 7, 4, 13, 0));
         finished.setFinishedAt(LocalDateTime.of(2026, 7, 4, 14, 0));
         finished = taskRepository.save(finished);
 
-        assertThat(taskRepository.findByIdAndOwnerAndFinishedAtIsNull(active.getId(), "Javi")).contains(active);
-        assertThat(taskRepository.findByIdAndOwnerAndFinishedAtIsNull(finished.getId(), "Javi")).isEmpty();
+        assertThat(taskRepository.findByIdAndFinishedAtIsNull(active.getId())).contains(active);
+        assertThat(taskRepository.findByIdAndFinishedAtIsNull(finished.getId())).isEmpty();
     }
 
-    private Task task(String owner, String name, LocalDateTime startedAt) {
+    private UserAccount user(String username) {
+        return userAccountRepository.save(new UserAccount(username, username + "@example.test", "encoded", Role.USER));
+    }
+
+    private Task task(UserAccount owner, String name, LocalDateTime startedAt) {
         return new Task(null, owner, name, "Description", startedAt, null);
     }
 }

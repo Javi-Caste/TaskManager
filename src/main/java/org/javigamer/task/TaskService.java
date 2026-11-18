@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.javigamer.user.CurrentUser;
+import org.javigamer.user.UserAccount;
+import org.javigamer.user.UserAccountRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +16,13 @@ import org.springframework.util.StringUtils;
 @Transactional
 public class TaskService {
 
-    private static final String DEFAULT_OWNER = "guest";
-
     private final TaskRepository taskRepository;
+    private final UserAccountRepository userAccountRepository;
     private final Clock clock;
 
-    public TaskService(TaskRepository taskRepository, Clock clock) {
+    public TaskService(TaskRepository taskRepository, UserAccountRepository userAccountRepository, Clock clock) {
         this.taskRepository = taskRepository;
+        this.userAccountRepository = userAccountRepository;
         this.clock = clock;
     }
 
@@ -30,7 +32,7 @@ public class TaskService {
         }
 
         Task task = new Task();
-        task.setOwner(normalizeOwner(currentUser.username()));
+        task.setOwner(findUserAccount(currentUser));
         task.setStartedAt(LocalDateTime.now(clock));
         applyForm(task, form);
         return taskRepository.save(task);
@@ -50,8 +52,8 @@ public class TaskService {
             return taskRepository.findAllByFinishedAtIsNullOrderByStartedAtAscIdAsc();
         }
 
-        return taskRepository.findAllByOwnerAndFinishedAtIsNullOrderByStartedAtAscIdAsc(
-                normalizeOwner(currentUser.username()));
+        return taskRepository.findAllByOwner_IdAndFinishedAtIsNullOrderByStartedAtAscIdAsc(
+                findUserAccount(currentUser).getId());
     }
 
     public Task updateTask(Long id, CurrentUser currentUser, TaskForm form) {
@@ -87,12 +89,13 @@ public class TaskService {
             return;
         }
 
-        if (!normalizeOwner(task.getOwner()).equals(normalizeOwner(currentUser.username()))) {
+        if (!task.getOwner().getUsername().equals(currentUser.username())) {
             throw new AccessDeniedException("No tienes permiso para acceder a esta tarea");
         }
     }
 
-    private String normalizeOwner(String owner) {
-        return StringUtils.hasText(owner) ? owner.strip() : DEFAULT_OWNER;
+    private UserAccount findUserAccount(CurrentUser currentUser) {
+        return userAccountRepository.findByUsername(currentUser.username())
+                .orElseThrow(() -> new AccessDeniedException("No se encontro la cuenta autenticada"));
     }
 }

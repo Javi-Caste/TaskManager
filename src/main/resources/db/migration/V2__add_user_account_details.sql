@@ -1,0 +1,8 @@
+ALTER TABLE user_accounts ADD COLUMN email VARCHAR(254);
+UPDATE user_accounts SET email = CONCAT(username, '@local.track') WHERE email IS NULL;
+ALTER TABLE user_accounts ALTER COLUMN email SET NOT NULL;
+ALTER TABLE user_accounts ADD CONSTRAINT uk_user_accounts_email UNIQUE (email);
+
+ALTER TABLE user_accounts ADD COLUMN enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE user_accounts ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_accounts ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
