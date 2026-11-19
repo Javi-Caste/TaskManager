@@ -30,6 +30,7 @@ public class UserAccountService implements UserDetailsService {
         return User.withUsername(userAccount.getUsername())
                 .password(userAccount.getPassword())
                 .roles(userAccount.getRole().name())
+                .disabled(!userAccount.isEnabled())
                 .build();
     }
 

@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 
 import org.javigamer.task.Task;
 import org.javigamer.task.TaskRepository;
+import org.javigamer.user.UserAccount;
+import org.javigamer.user.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,9 @@ class TaskSecurityIntegrationTest {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
     @BeforeEach
     void cleanTasks() {
@@ -68,7 +73,8 @@ class TaskSecurityIntegrationTest {
         assertThat(taskRepository.findAll())
                 .singleElement()
                 .extracting(Task::getOwner)
-                .isEqualTo("javi");
+                .extracting(UserAccount::getId)
+                .isEqualTo(userAccountRepository.findByUsername("javi").orElseThrow().getId());
     }
 
     @Test
@@ -161,7 +167,8 @@ class TaskSecurityIntegrationTest {
     }
 
     private Task task(String owner, String name) {
-        return new Task(null, owner, name, "Description", LocalDateTime.of(2026, 7, 4, 12, 0), null);
+        UserAccount user = userAccountRepository.findByUsername(owner).orElseThrow();
+        return new Task(null, user, name, "Description", LocalDateTime.of(2026, 7, 4, 12, 0), null);
     }
 
     private String taskJson(String name, String description) {

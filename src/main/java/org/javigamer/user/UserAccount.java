@@ -1,5 +1,7 @@
 package org.javigamer.user;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,6 +29,11 @@ public class UserAccount {
     private String username;
 
     @NotBlank
+    @Size(max = 254)
+    @Column(nullable = false, unique = true, length = 254)
+    private String email;
+
+    @NotBlank
     @Column(nullable = false)
     private String password;
 
@@ -35,17 +42,43 @@ public class UserAccount {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
     protected UserAccount() {
     }
 
-    public UserAccount(String username, String password, Role role) {
+    public UserAccount(String username, String email, String password, Role role) {
         this.username = username;
+        this.email = email;
         this.password = password;
         this.role = role;
     }
 
+    @jakarta.persistence.PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @jakarta.persistence.PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -54,6 +87,14 @@ public class UserAccount {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -70,5 +111,21 @@ public class UserAccount {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

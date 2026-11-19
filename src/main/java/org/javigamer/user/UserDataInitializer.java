@@ -17,14 +17,14 @@ public class UserDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        createUserIfMissing("admin", "admin123", Role.ADMIN);
-        createUserIfMissing("javi", "password", Role.USER);
-        createUserIfMissing("alex", "password", Role.USER);
+        createUserIfMissing("admin", "admin@local.track", "admin123", Role.ADMIN);
+        createUserIfMissing("javi", "javi@local.track", "password", Role.USER);
+        createUserIfMissing("alex", "alex@local.track", "password", Role.USER);
     }
 
-    private void createUserIfMissing(String username, String password, Role role) {
+    private void createUserIfMissing(String username, String email, String password, Role role) {
         if (!userAccountRepository.existsByUsername(username)) {
-            userAccountRepository.save(new UserAccount(username, passwordEncoder.encode(password), role));
+            userAccountRepository.save(new UserAccount(username, email, passwordEncoder.encode(password), role));
         }
     }
 }

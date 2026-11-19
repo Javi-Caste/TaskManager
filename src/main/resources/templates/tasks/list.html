@@ -55,7 +55,7 @@
             <p class="eyebrow">Tarea encontrada</p>
             <a class="search-result-link" th:href="@{/app/tasks/{id}(id=${taskSearchResult.id})}">
                 <span th:text="${taskSearchResult.name}">Nombre</span>
-                <strong th:text="${taskSearchResult.owner}">owner</strong>
+                    <strong th:text="${taskSearchResult.owner.username}">owner</strong>
             </a>
         </div>
 
@@ -68,7 +68,7 @@
                 <h2 th:text="${task.name}">Nombre de tarea</h2>
                 <p th:text="${task.description ?: 'Sin descripcion'}">Descripcion</p>
                 <div class="meta-row">
-                    <span th:if="${isAdmin}" th:text="${'Responsable: ' + task.owner}">Responsable: javi</span>
+                    <span th:if="${isAdmin}" th:text="${'Responsable: ' + task.owner.username}">Responsable: javi</span>
                     <span th:text="${#temporals.format(task.startedAt, 'yyyy-MM-dd HH:mm')}">2026-07-04 12:00</span>
                 </div>
             </div>

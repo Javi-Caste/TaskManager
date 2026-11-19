@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -21,6 +22,8 @@ import org.javigamer.task.TaskRepository;
 import org.javigamer.task.TaskService;
 import org.javigamer.user.CurrentUser;
 import org.javigamer.user.Role;
+import org.javigamer.user.UserAccount;
+import org.javigamer.user.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,11 +46,18 @@ class TaskServiceTest {
     @Mock
     private TaskRepository taskRepository;
 
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
     private TaskService taskService;
+
+    private UserAccount javiAccount;
 
     @BeforeEach
     void setUpService() {
-        taskService = new TaskService(taskRepository, FIXED_CLOCK);
+        javiAccount = user(1L, "Javi");
+        lenient().when(userAccountRepository.findByUsername("Javi")).thenReturn(Optional.of(javiAccount));
+        taskService = new TaskService(taskRepository, userAccountRepository, FIXED_CLOCK);
     }
 
     @Test
@@ -62,7 +72,7 @@ class TaskServiceTest {
         Task savedTask = taskService.createTask(JAVI, form);
 
         assertThat(savedTask.getId()).isEqualTo(10L);
-        assertThat(savedTask.getOwner()).isEqualTo("Javi");
+        assertThat(savedTask.getOwner()).isEqualTo(javiAccount);
         assertThat(savedTask.getName()).isEqualTo("Build UI");
         assertThat(savedTask.getDescription()).isEqualTo("Thymeleaf screens");
         assertThat(savedTask.getStartedAt()).isEqualTo(NOW);
@@ -76,7 +86,7 @@ class TaskServiceTest {
 
         Task savedTask = taskService.createTask(JAVI, form);
 
-        assertThat(savedTask.getOwner()).isEqualTo("Javi");
+        assertThat(savedTask.getOwner()).isEqualTo(javiAccount);
         assertThat(savedTask.getDescription()).isNull();
         assertThat(savedTask.getStartedAt()).isEqualTo(NOW);
         assertThat(savedTask.getFinishedAt()).isNull();
@@ -134,7 +144,7 @@ class TaskServiceTest {
     @Test
     void getAllTasksReturnsOnlyActiveTasksForOwner() {
         List<Task> tasks = List.of(task(1L, "Javi", "First"), task(2L, "Javi", "Second"));
-        when(taskRepository.findAllByOwnerAndFinishedAtIsNullOrderByStartedAtAscIdAsc("Javi")).thenReturn(tasks);
+        when(taskRepository.findAllByOwner_IdAndFinishedAtIsNullOrderByStartedAtAscIdAsc(1L)).thenReturn(tasks);
 
         List<Task> result = taskService.getAllTasks(JAVI);
 
@@ -160,7 +170,7 @@ class TaskServiceTest {
 
         Task updatedTask = taskService.updateTask(1L, JAVI, form);
 
-        assertThat(updatedTask.getOwner()).isEqualTo("Javi");
+        assertThat(updatedTask.getOwner().getUsername()).isEqualTo("Javi");
         assertThat(updatedTask.getName()).isEqualTo("New name");
         assertThat(updatedTask.getDescription()).isEqualTo("New description");
         assertThat(updatedTask.getStartedAt()).isEqualTo(LocalDateTime.of(2026, 7, 4, 12, 0));
@@ -199,7 +209,7 @@ class TaskServiceTest {
 
         Task updatedTask = taskService.updateTask(1L, ADMIN, form);
 
-        assertThat(updatedTask.getOwner()).isEqualTo("Alex");
+        assertThat(updatedTask.getOwner().getUsername()).isEqualTo("Alex");
         assertThat(updatedTask.getName()).isEqualTo("New name");
         assertThat(updatedTask.getDescription()).isEqualTo("New description");
     }
@@ -253,10 +263,16 @@ class TaskServiceTest {
     private Task task(Long id, String owner, String name) {
         return new Task(
                 id,
-                owner,
+                user(owner.equals("Javi") ? 1L : 2L, owner),
                 name,
                 "Description",
                 LocalDateTime.of(2026, 7, 4, 12, 0),
                 null);
+    }
+
+    private UserAccount user(Long id, String username) {
+        UserAccount user = new UserAccount(username, username.toLowerCase() + "@example.test", "encoded", Role.USER);
+        user.setId(id);
+        return user;
     }
 }
